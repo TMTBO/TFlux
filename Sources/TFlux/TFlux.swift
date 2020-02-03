@@ -44,7 +44,7 @@ public let asyncActionMiddleware: Middleware<State> = { dispatch, state in
     }
 }
 
-@available(iOS 13.0, *)
+@available(OSX 10.15, *)
 final public class Store<S: State>: ObservableObject {
     
     @Published public var state: S
