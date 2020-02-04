@@ -72,7 +72,7 @@ final public class Store<S: State>: ObservableObject {
         dispatcher = m.reversed()
             .reduce(reducerDispatch) { dispatchFunc, middleware in
                 
-                let dispatch: DispatchFunction = { [weak self] in self?.dispatch(action: $0) }
+                let dispatch: DispatchFunction = { [weak self] in self?.dispatcher($0) }
                 let state = { [weak self] in self?.state }
                 return middleware(dispatch, state)(dispatchFunc) }
     }
