@@ -57,7 +57,9 @@ final public class Store<S: State>: ObservableObject {
         let result = self.reducers.map { [unowned self] in $0.execute(state: self.state, action: action) }
 
         if let s = result.last {
-            self.state = s
+            DispatchQueue.main.async {
+                self.state = s
+            }
         }
     }
     
