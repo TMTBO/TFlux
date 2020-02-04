@@ -23,9 +23,11 @@ public protocol AsyncAction: Action {
     func execute(state: State?, dispatch: @escaping DispatchFunction)
 }
 
-public protocol Reducer {
-    func execute<S: State>(state: S, action: Action) -> S
-}
+//public protocol Reducer {
+//    func execute<S: State>(state: S, action: Action) -> S
+//}
+
+public typealias Reducer<S: State> = (_ state: S, _ action: Action) -> S
 
 public typealias DispatchFunction = (Action) -> Void
 public typealias Middleware<S> = (@escaping DispatchFunction, @escaping () -> S?) -> (@escaping DispatchFunction) -> DispatchFunction
@@ -49,25 +51,23 @@ final public class Store<S: State>: ObservableObject {
     
     @Published public var state: S
     
-    private let reducers: [Reducer]
+    private let reducer: Reducer<S>
     private var dispatcher: DispatchFunction!
     
     private lazy var reducerDispatch: DispatchFunction = { [unowned self] action in
 
-        let result = self.reducers.map { [unowned self] in $0.execute(state: self.state, action: action) }
-
-        if let s = result.last {
-            DispatchQueue.main.async {
-                self.state = s
-            }
+        let s = self.reducer(self.state, action)
+        
+        DispatchQueue.main.async {
+            self.state = s
         }
     }
     
-    public init(reducers: [Reducer],
+    public init(reducer: @escaping Reducer<S>,
                 middleware: [Middleware<S>] = [],
                 state: S) {
         self.state = state
-        self.reducers = reducers
+        self.reducer = reducer
         
         var m = middleware
         m.append(asyncActionMiddleware)
