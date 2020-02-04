@@ -81,9 +81,7 @@ final public class Store<S: State>: ObservableObject {
     
     public func dispatch(action: Action) {
         
-        DispatchQueue.main.async {
-            self.dispatcher(action)
-        }
+        self.dispatcher(action)
     }
     
 }
