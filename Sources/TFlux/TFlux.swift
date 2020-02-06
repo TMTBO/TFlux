@@ -9,7 +9,7 @@
 import Foundation
 import Combine
 
-public protocol State { }
+public protocol FluxState { }
 
 //public protocol Command {
 //
@@ -20,19 +20,19 @@ public protocol State { }
 
 public protocol Action { }
 public protocol AsyncAction: Action {
-    func execute(state: State?, dispatch: @escaping DispatchFunction)
+    func execute(state: FluxState?, dispatch: @escaping DispatchFunction)
 }
 
 //public protocol Reducer {
 //    func execute<S: State>(state: S, action: Action) -> S
 //}
 
-public typealias Reducer<S: State> = (_ state: S, _ action: Action) -> S
+public typealias Reducer<S: FluxState> = (_ state: S, _ action: Action) -> S
 
 public typealias DispatchFunction = (Action) -> Void
 public typealias Middleware<S> = (@escaping DispatchFunction, @escaping () -> S?) -> (@escaping DispatchFunction) -> DispatchFunction
 
-public let asyncActionMiddleware: Middleware<State> = { dispatch, state in
+public let asyncActionMiddleware: Middleware<FluxState> = { dispatch, state in
     return { next in
         return { action in
             
@@ -47,7 +47,7 @@ public let asyncActionMiddleware: Middleware<State> = { dispatch, state in
 }
 
 @available(OSX 10.15, *)
-final public class Store<S: State>: ObservableObject {
+final public class Store<S: FluxState>: ObservableObject {
     
     @Published public var state: S
     
