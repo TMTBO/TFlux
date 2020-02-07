@@ -20,7 +20,7 @@ public protocol FluxState { }
 
 public protocol Action { }
 public protocol AsyncAction: Action {
-    func execute(state: FluxState?, dispatch: @escaping DispatchFunction)
+    mutating func execute(state: FluxState?, dispatch: @escaping DispatchFunction)
 }
 
 //public protocol Reducer {
@@ -39,7 +39,7 @@ public let asyncActionMiddleware: Middleware<FluxState> = { dispatch, state in
             // execute reducer
             next(action)
             
-            if let a = action as? AsyncAction {
+            if var a = action as? AsyncAction {
                 a.execute(state: state(), dispatch: dispatch)
             }
         }
