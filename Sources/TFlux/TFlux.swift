@@ -18,9 +18,10 @@ public protocol FluxState { }
 //    func run(state: () -> State, dispatch: @escaping DispatchFunction)
 //}
 
+public let asyncActionQueue = DispatchQueue(label: "fun.thrillerone.www.tflux.asyncActionQueue")
 public protocol Action { }
 public protocol AsyncAction: Action {
-    mutating func execute(state: FluxState?, dispatch: @escaping DispatchFunction)
+    func execute(state: FluxState?, dispatch: @escaping DispatchFunction)
 }
 
 //public protocol Reducer {
@@ -39,8 +40,10 @@ public let asyncActionMiddleware: Middleware<FluxState> = { dispatch, state in
             // execute reducer
             next(action)
             
-            if var a = action as? AsyncAction {
-                a.execute(state: state(), dispatch: dispatch)
+            if let a = action as? AsyncAction {
+                asyncActionQueue.async {
+                    a.execute(state: state(), dispatch: dispatch)
+                }
             }
         }
     }
