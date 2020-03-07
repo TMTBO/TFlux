@@ -57,14 +57,7 @@ final public class Store<S: FluxState>: ObservableObject {
     private let reducer: Reducer<S>
     private var dispatcher: DispatchFunction!
     
-    private lazy var reducerDispatch: DispatchFunction = { [unowned self] action in
-
-        let s = self.reducer(self.state, action)
-        
-        DispatchQueue.main.async {
-            self.state = s
-        }
-    }
+    private lazy var reducerDispatch: DispatchFunction = { [unowned self] in self.state = self.reducer(self.state, $0) }
     
     public init(reducer: @escaping Reducer<S>,
                 middleware: [Middleware<S>] = [],
@@ -74,18 +67,14 @@ final public class Store<S: FluxState>: ObservableObject {
         
         var m = middleware
         m.append(asyncActionMiddleware)
-        dispatcher = m.reversed()
-            .reduce(reducerDispatch) { dispatchFunc, middleware in
-                
-                let dispatch: DispatchFunction = { [weak self] in self?.dispatcher($0) }
-                let state = { [weak self] in self?.state }
-                return middleware(dispatch, state)(dispatchFunc) }
+        dispatcher = m.reversed().reduce(reducerDispatch) { dispatchFunc, middleware in
+            
+            let dispatch: DispatchFunction = { [weak self] in self?.dispatcher($0) }
+            let state = { [weak self] in self?.state }
+            return middleware(dispatch, state)(dispatchFunc) }
     }
     
-    public func dispatch(action: Action) {
-        
-        self.dispatcher(action)
-    }
+    public func dispatch(action: Action) { DispatchQueue.main.async { self.dispatcher(action) } }
     
 }
 
