@@ -26,5 +26,5 @@ let package = Package(
             name: "TFluxTests",
             dependencies: ["TFlux"]),
     ],
-    swiftLanguageVersions: [ .version("5.1") ]
+    swiftLanguageVersions: [ .v5 ]
 )
