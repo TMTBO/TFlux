@@ -33,7 +33,7 @@ public typealias Reducer<S: FluxState> = (_ state: S, _ action: Action) -> S
 public typealias DispatchFunction = (Action) -> Void
 public typealias Middleware<S> = (@escaping DispatchFunction, @escaping () -> S?) -> (@escaping DispatchFunction) -> DispatchFunction
 
-public let asyncActionMiddleware: Middleware<FluxState> = { dispatch, state in
+private let asyncActionMiddleware: Middleware<FluxState> = { dispatch, state in
     return { next in
         return { action in
             
@@ -45,6 +45,19 @@ public let asyncActionMiddleware: Middleware<FluxState> = { dispatch, state in
                     a.execute(state: state(), dispatch: dispatch)
                 }
             }
+        }
+    }
+}
+
+private let loggingMiddleware: Middleware<FluxState> = { dispatch, getState in
+    return { next in
+        return { action in
+            #if DEBUG
+            let name = __dispatch_queue_get_label(nil)
+            let queueName = String(cString: name, encoding: .utf8)
+            print("#Action: \(String(reflecting: type(of: action))) on queue: \(queueName ?? "??")")
+            #endif
+            return next(action)
         }
     }
 }
@@ -66,7 +79,7 @@ final public class Store<S: FluxState>: ObservableObject {
         self.reducer = reducer
         
         var m = middleware
-        m.append(asyncActionMiddleware)
+        m.append(contentsOf: [asyncActionMiddleware, loggingMiddleware])
         dispatcher = m.reversed().reduce(reducerDispatch) { dispatchFunc, middleware in
             
             let dispatch: DispatchFunction = { [weak self] in self?.dispatch(action: $0) }
