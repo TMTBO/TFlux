@@ -11,11 +11,19 @@ import Combine
 
 public protocol FluxState { }
 
-//public protocol Command {
+public protocol Command {
+    associatedtype State
+    func run(state: () -> State, dispatch: @escaping DispatchFunction)
+}
+
+//extension Command {
 //
-//    associatedtype State
-//
-//    func run(state: () -> State, dispatch: @escaping DispatchFunction)
+//    func merge(_ commands: [Self]) {
+//        commands.reduce(self) { (_, c) in
+//            c.run(state: <#T##() -> Self.State#>, dispatch: <#T##DispatchFunction##DispatchFunction##(Action) -> Void#>)
+//        }
+//        run(state: <#T##() -> State#>, dispatch: <#T##DispatchFunction##DispatchFunction##(Action) -> Void#>)
+//    }
 //}
 
 public let asyncActionQueue = DispatchQueue(label: "fun.thrillerone.www.tflux.asyncActionQueue")
@@ -28,7 +36,7 @@ public protocol AsyncAction: Action {
 //    func execute<S: State>(state: S, action: Action) -> S
 //}
 
-public typealias Reducer<S: FluxState> = (_ state: S, _ action: Action) -> S
+public typealias Reducer<S: FluxState, C: Command> = (_ state: S, _ action: Action) -> (state: S, command: C?)
 
 public typealias DispatchFunction = (Action) -> Void
 public typealias Middleware<S> = (@escaping DispatchFunction, @escaping () -> S?) -> (@escaping DispatchFunction) -> DispatchFunction
@@ -63,16 +71,22 @@ private let loggingMiddleware: Middleware<FluxState> = { dispatch, getState in
 }
 
 @available(OSX 10.15, *)
-final public class Store<S: FluxState>: ObservableObject {
+final public class Store<S: FluxState, C: Command>: ObservableObject where S == C.State {
     
     @Published public var state: S
     
-    private let reducer: Reducer<S>
+    private let reducer: Reducer<S, C>
     private var dispatcher: DispatchFunction!
     
-    private lazy var reducerDispatch: DispatchFunction = { [unowned self] in self.state = self.reducer(self.state, $0) }
+    private lazy var reducerDispatch: DispatchFunction = { [unowned self] in
+        
+        let result = self.reducer(self.state, $0)
+        
+        self.state = result.state
+        result.command?.run(state: { result.state }, dispatch: self.dispatcher)
+    }
     
-    public init(reducer: @escaping Reducer<S>,
+    public init(reducer: @escaping Reducer<S, C>,
                 middleware: [Middleware<S>] = [],
                 state: S) {
         self.state = state
