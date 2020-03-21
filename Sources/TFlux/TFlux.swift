@@ -12,8 +12,7 @@ import Combine
 public protocol FluxState { }
 
 public protocol Command {
-    associatedtype State
-    func run(state: () -> State, dispatch: @escaping DispatchFunction)
+    func run<S>(state: () -> S, dispatch: @escaping DispatchFunction)
 }
 
 //extension Command {
@@ -36,7 +35,7 @@ public protocol AsyncAction: Action {
 //    func execute<S: State>(state: S, action: Action) -> S
 //}
 
-public typealias Reducer<S: FluxState, C: Command> = (_ state: S, _ action: Action) -> (state: S, command: C?)
+public typealias Reducer<S: FluxState> = (_ state: S, _ action: Action) -> (state: S, command: Command?)
 
 public typealias DispatchFunction = (Action) -> Void
 public typealias Middleware<S> = (@escaping DispatchFunction, @escaping () -> S?) -> (@escaping DispatchFunction) -> DispatchFunction
@@ -71,11 +70,11 @@ private let loggingMiddleware: Middleware<FluxState> = { dispatch, getState in
 }
 
 @available(OSX 10.15, *)
-final public class Store<S: FluxState, C: Command>: ObservableObject where S == C.State {
+final public class Store<S: FluxState>: ObservableObject {
     
     @Published public var state: S
     
-    private let reducer: Reducer<S, C>
+    private let reducer: Reducer<S>
     private var dispatcher: DispatchFunction!
     
     private lazy var reducerDispatch: DispatchFunction = { [unowned self] in
@@ -86,7 +85,7 @@ final public class Store<S: FluxState, C: Command>: ObservableObject where S == 
         result.command?.run(state: { result.state }, dispatch: self.dispatcher)
     }
     
-    public init(reducer: @escaping Reducer<S, C>,
+    public init(reducer: @escaping Reducer<S>,
                 middleware: [Middleware<S>] = [],
                 state: S) {
         self.state = state
